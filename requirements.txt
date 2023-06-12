@@ -1,0 +1,10 @@
+matplotlib
+numpy
+pillow
+dataclasses
+pytorch==1.9.0
+opencv
+scikit-learn
+scikit-image
+lpips
+tensorflow

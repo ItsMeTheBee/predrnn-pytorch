@@ -26,6 +26,7 @@ parser.add_argument('--gen_frm_dir', type=str, default='results/mnist_predrnn')
 parser.add_argument('--input_length', type=int, default=10)
 parser.add_argument('--total_length', type=int, default=20)
 parser.add_argument('--img_width', type=int, default=64)
+parser.add_argument('--img_height', type=int, default=64)
 parser.add_argument('--img_channel', type=int, default=1)
 
 # model
@@ -172,7 +173,7 @@ def train_wrapper(model):
         model.load(args.pretrained_model)
     # load data
     train_input_handle, test_input_handle = datasets_factory.data_provider(
-        args.dataset_name, args.train_data_paths, args.valid_data_paths, args.batch_size, args.img_width,
+        args.dataset_name, args.train_data_paths, args.valid_data_paths, args.batch_size, args.img_width, args.img_height,
         seq_length=args.total_length, injection_action=args.injection_action, is_training=True)
 
     eta = args.sampling_start_value

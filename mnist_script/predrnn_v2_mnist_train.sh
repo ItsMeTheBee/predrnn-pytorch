@@ -4,10 +4,10 @@ python -u run.py \
     --is_training 1 \
     --device cuda \
     --dataset_name mnist \
-    --train_data_paths /workspace/wuhaixu/predrnn/data/moving-mnist-example/moving-mnist-train.npz \
-    --valid_data_paths /workspace/wuhaixu/predrnn/data/moving-mnist-example/moving-mnist-valid.npz \
-    --save_dir checkpoints/mnist_predrnn_v2 \
-    --gen_frm_dir results/mnist_predrnn_v2 \
+    --train_data_paths /home/sally/Work/Promotion/Data/MMnist/moving-mnist-example/moving-mnist-train.npz \
+    --valid_data_paths /home/sally/Work/Promotion/Data/MMnist/moving-mnist-example/moving-mnist-valid.npz \
+    --save_dir /home/sally/Work/Promotion/Model/PredRnn/test/checkpoints \
+    --gen_frm_dir /home/sally/Work/Promotion/Model/PredRnn/test/results \
     --model_name predrnn_v2 \
     --reverse_input 1 \
     --img_width 64 \
