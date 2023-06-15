@@ -83,6 +83,7 @@ class ActionFrameInfo:
     file_path: str
     person_mark: int
     material: int
+    folder_index: int
     #category_flag: int
 
 
@@ -123,12 +124,14 @@ class DataProcess:
                         dir_path = os.path.join(root, "cam00")
                         filelist = [f for f in os.listdir(dir_path) if f.endswith('.tif')] #os.listdir(dir_path)
                         filelist.sort() 
+                        #print(root[-1:])
                         for frame_name in filelist: 
                             yield ActionFrameInfo(
                                 file_name=frame_name,
                                 file_path=os.path.join(dir_path, frame_name),
                                 person_mark=person_mark,
-                                material=person_id
+                                material=person_id,
+                                folder_index=root[-1:]
                                 #category_flag=frame_category_flag
                             )
 
@@ -152,6 +155,7 @@ class DataProcess:
         frames_person_mark = []  # for each frame in the joint array, mark the person ID
         frames_category = []
         materials = []
+        folder_index = []
 
         # First count total number of frames
         # Do it without creating massive array:
@@ -176,6 +180,7 @@ class DataProcess:
             frames_file_name.append(frame.file_name)
             frames_person_mark.append(frame.person_mark)
             materials.append(frame.material)
+            folder_index.append(frame.folder_index)
             #frames_category.append(frame.category_flag)
 
         #print(frames_file_name)
@@ -183,7 +188,9 @@ class DataProcess:
         
         # identify sequences of <seq_len> within the same video
         values, counts = np.unique(materials, return_counts=True)
-        #print(values, counts)
+        print(values, counts)
+        values, counts = np.unique(folder_index, return_counts=True)
+        print(values, counts)
         indices = counts
 
         print("there are " + str(data.shape[0]) + " pictures")
