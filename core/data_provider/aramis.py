@@ -9,6 +9,11 @@ from typing import Iterable, List
 from dataclasses import dataclass
 from collections import Counter
 
+from tqdm import tqdm
+from threading import Thread
+from typing import Union, List
+import time
+
 
 logger = logging.getLogger(__name__)
 
@@ -94,46 +99,12 @@ class DataProcess:
         self.image_height = input_param['image_height']
 
         # Hard coded training and test persons (prevent same person occurring in train - test set)
-        self.train_material = ['1086', '1439']
-        self.test_material = ['1441']
+        self.train_material = ['1086']#['1086', '1439']
+        self.test_material = ['1086']
 
         self.input_param = input_param
         self.seq_len = input_param['seq_length']
 
-
-    def generate_frames(self, root_path, person_ids: List[int]) -> Iterable[ActionFrameInfo]:
-        """Generate frame info for all frames.
-        
-        Parameters:
-            person_ids: persons to include
-        """
-        person_mark = 0
-
-        #path = os.path.join(root_path, cat_dir)
-        #videos = os.listdir(path)
-
-        for root, dirs, files in os.walk(root_path):
-            # /media/sally/Elements/1086/Videos & .tif/DX54D_ZVps_8/cam00
-            if "cam00" in dirs and "cam01" in dirs:
-                print("ROOT ", root)
-
-                for person_id in person_ids:
-                    if person_id in root:
-                        #files = os.listdir(os.path.join(root, "cam00"))
-                        person_mark += 1  # identify all stored frames as belonging to this person + direction
-                        dir_path = os.path.join(root, "cam00")
-                        filelist = [f for f in os.listdir(dir_path) if f.endswith('.tif')] #os.listdir(dir_path)
-                        filelist.sort() 
-                        #print(root[-1:])
-                        for frame_name in filelist: 
-                            yield ActionFrameInfo(
-                                file_name=frame_name,
-                                file_path=os.path.join(dir_path, frame_name),
-                                person_mark=person_mark,
-                                material=person_id,
-                                folder_index=root[-1:]
-                                #category_flag=frame_category_flag
-                            )
 
     def load_data(self, paths, mode='train'):
         '''
@@ -151,51 +122,64 @@ class DataProcess:
             raise Exception("Unexpected mode: " + mode)
         print('begin load data' + str(path))
 
-        frames_file_name = []
-        frames_person_mark = []  # for each frame in the joint array, mark the person ID
-        frames_category = []
-        materials = []
-        folder_index = []
+        indices = []
 
-        # First count total number of frames
-        # Do it without creating massive array:
-        # all_frame_info = self.generate_frames(path, mode_person_ids)
-        tot_num_frames = sum((1 for _ in self.generate_frames(path, mode_person_ids)))
-        print(f"Preparing to load {tot_num_frames} video frames.")
-        
-        # Target array containing ALL RESIZED frames
+        npz_files = []
+
+        if isinstance(path, str) and path.endswith(".npz"):
+            npz_files.append(path)
+            print("added ", path)
+        else:
+            print("searching ")
+            #for folder_path in path:
+                #print(folder_path)
+            for root, dirs, files in os.walk(path):
+                #print(files)
+                for file in files:
+                    if file.endswith(".npz") and not file.startswith("._"):
+                        npz_files.append(os.path.join(root, file))
+
+        print("found ", npz_files)
+        tot_num_frames = 0
+
+        for file in tqdm(npz_files):
+            X = np.load(file, allow_pickle=True)["arr_0"]
+            tot_num_frames += len(X)
+
+        """ # original data loading
+        frame_im = Image.open(frame.file_path).convert('L') # int8 2D array
+
+        # input type must be float32 for default interpolation method cv2.INTER_AREA
+        frame_np = np.array(frame_im, dtype=np.float32)  # (1000, 1000) numpy array
+        data[i,:,:,0] = (cv2.resize(
+        frame_np, (self.image_width,self.image_width))/255).astype(np.int8)
+        """
+
+        print("total frames ", tot_num_frames)
+
         data = np.empty((tot_num_frames, self.image_width, self.image_width , 1),
-                        dtype=np.int8)  # np.float32
-
-        # Read, resize, and store video frames
-        for i, frame in enumerate(self.generate_frames(path, mode_person_ids)):
-            #print(frame)
-            frame_im = Image.open(frame.file_path).convert('L') # int8 2D array
-
-            # input type must be float32 for default interpolation method cv2.INTER_AREA
-            frame_np = np.array(frame_im, dtype=np.float32)  # (1000, 1000) numpy array
-            data[i,:,:,0] = (cv2.resize(
-                frame_np, (self.image_width,self.image_width))/255).astype(np.int8)
-
-            frames_file_name.append(frame.file_name)
-            frames_person_mark.append(frame.person_mark)
-            materials.append(frame.material)
-            folder_index.append(frame.folder_index)
-            #frames_category.append(frame.category_flag)
-
-        #print(frames_file_name)
-        #print(materials)
+                        dtype=np.int8)
         
-        # identify sequences of <seq_len> within the same video
-        values, counts = np.unique(materials, return_counts=True)
+        index = 0
+        data_filler = 0
+        for file in tqdm(npz_files):
+            X = np.load(file, allow_pickle=True)["arr_0"]
+            for i in range(len(X)):
+                indices.append(index)
+                X1, X2 = np.split(X[i], 2, axis=0)
+                data[data_filler,:,:,0] = X1
+                data_filler += 1
+
+            index +=1
+            #print("index ", index)
+
+        values, counts = np.unique(indices, return_counts=True)
         print(values, counts)
-        values, counts = np.unique(folder_index, return_counts=True)
-        print(values, counts)
-        indices = counts
 
         print("there are " + str(data.shape[0]) + " pictures")
-        print("there are " + str(len(indices)) + " sequences")
-        return data, indices
+        print("there are " + str(len(counts)) + " sequences")
+
+        return data, counts
 
     def get_train_input_handle(self):
         train_data, train_indices = self.load_data(self.paths, mode='train')
@@ -204,4 +188,5 @@ class DataProcess:
     def get_test_input_handle(self):
         test_data, test_indices = self.load_data(self.paths, mode='test')
         return InputHandle(test_data, test_indices, self.input_param)
+
 

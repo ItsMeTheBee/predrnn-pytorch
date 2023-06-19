@@ -3,10 +3,10 @@ export CUDA_VISIBLE_DEVICES=0
 cd ..
 python -u run.py \
     --is_training 1 \
-    --device cuda \
+    --device cpu \
     --dataset_name aramis \
-    --train_data_paths /media/sally/Elements \
-    --valid_data_paths /media/sally/Elements \
+    --train_data_paths /home/sally/Work/Promotion/Data/AramisTest/compressed_cutoff \
+    --valid_data_paths /home/sally/Work/Promotion/Data/AramisTest/compressed_cutoff \
     --save_dir /home/sally/Work/Promotion/Model/PredRnn/test/checkpoints \
     --gen_frm_dir /home/sally/Work/Promotion/Model/PredRnn/test/results \
     --model_name predrnn_v2 \

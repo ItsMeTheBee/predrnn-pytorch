@@ -189,6 +189,7 @@ def train_wrapper(model):
         else:
             eta, real_input_flag = schedule_sampling(eta, itr)
 
+        print("begin training")
         trainer.train(model, ims, real_input_flag, args, itr)
 
         if itr % args.snapshot_interval == 0:
