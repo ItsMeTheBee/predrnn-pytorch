@@ -3,7 +3,7 @@ export CUDA_VISIBLE_DEVICES=0
 cd ..
 python -u run.py \
     --is_training 1 \
-    --device cpu \
+    --device cuda \
     --dataset_name aramis \
     --train_data_paths /home/sally/Work/Promotion/Data/AramisTest/compressed_cutoff \
     --valid_data_paths /home/sally/Work/Promotion/Data/AramisTest/compressed_cutoff \
@@ -15,8 +15,8 @@ python -u run.py \
     --img_width 400 \
     --img_height 100 \
     --img_channel 1 \
-    --input_length 10 \
-    --total_length 20 \
+    --input_length 2 \
+    --total_length 4 \
     --num_hidden 128,128,128,128 \
     --filter_size 5 \
     --stride 1 \
@@ -28,7 +28,7 @@ python -u run.py \
     --r_sampling_step_2 50000 \
     --r_exp_alpha 2000 \
     --lr 0.0001 \
-    --batch_size 4 \
+    --batch_size 1 \
     --max_iterations 80000 \
     --display_interval 100 \
     --test_interval 5000 \

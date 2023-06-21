@@ -40,12 +40,17 @@ class InputHandle:
             random.shuffle(self.indices)
         self.current_position = 0
         self.current_batch_indices = self.indices[self.current_position:self.current_position + self.minibatch_size]
+        print("beginning at ", self.current_position)
+        print("beginning aindex at ", self.current_batch_indices)
 
     def next(self):
         self.current_position += self.minibatch_size
+        print("next at ", self.current_position)
         if self.no_batch_left():
             return None
+        print(self.indices)
         self.current_batch_indices = self.indices[self.current_position:self.current_position + self.minibatch_size]
+        print("next aindex at ", self.current_batch_indices)
 
     def no_batch_left(self):
         if self.current_position + self.minibatch_size >= self.total():
@@ -67,10 +72,12 @@ class InputHandle:
             batch_ind = self.current_batch_indices[i]
             begin = batch_ind
             end = begin + self.current_input_length
+            print("begin ", begin, "end ", end)
             data_slice = self.datas[begin:end, :, :, :]
             input_batch[i, :self.current_input_length, :, :, :] = data_slice
             
         input_batch = input_batch.astype(self.input_data_type)
+
         return input_batch
 
     def print_stat(self):
@@ -160,26 +167,35 @@ class DataProcess:
         data = np.empty((tot_num_frames, self.image_width, self.image_width , 1),
                         dtype=np.int8)
         
-        index = 0
+        indices = list()
+        separator = 0
         data_filler = 0
         for file in tqdm(npz_files):
+            indices.append(separator)
             X = np.load(file, allow_pickle=True)["arr_0"]
             for i in range(len(X)):
-                indices.append(index)
+                
                 X1, X2 = np.split(X[i], 2, axis=0)
+                """print(X1.shape)
+                print("Showing stored image")
+                pil_image = Image.fromarray(np.reshape(X1, (400,400)))
+                pil_image.show()
+                time.sleep(10)"""
+                #print(data_filler)
                 data[data_filler,:,:,0] = X1
                 data_filler += 1
-
-            index +=1
+                separator +=1
+            #indices.append(separator)
             #print("index ", index)
 
         values, counts = np.unique(indices, return_counts=True)
         print(values, counts)
 
         print("there are " + str(data.shape[0]) + " pictures")
-        print("there are " + str(len(counts)) + " sequences")
+        print("there are " + str(len(indices)) + " sequences")
+        print(indices)
 
-        return data, counts
+        return data, indices
 
     def get_train_input_handle(self):
         train_data, train_indices = self.load_data(self.paths, mode='train')

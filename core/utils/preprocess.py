@@ -1,8 +1,25 @@
 __author__ = 'yunbo'
 
 import numpy as np
+from PIL import Image
+import time
 
 def reshape_patch(img_tensor, patch_size):
+    """print("shape ", img_tensor.shape)
+    test = img_tensor
+    test = test.transpose(0,4,1,3,2)
+    print("new shape 1 ", test.shape)
+    test = np.reshape(test, (4,test.shape[3],test.shape[4]))
+    print("new shape 2 ", test.shape)
+    X1, X2, X3, X4 = np.split(test, 4, axis=0)
+    X1 = np.reshape(X1, (test.shape[1],test.shape[2]))
+    print("final shape ", X1.shape)
+
+
+    img = Image.fromarray(X1.astype(np.uint8), 'L')
+    img.show()
+    time.sleep(10)"""
+
     assert 5 == img_tensor.ndim
     batch_size = np.shape(img_tensor)[0]
     seq_length = np.shape(img_tensor)[1]

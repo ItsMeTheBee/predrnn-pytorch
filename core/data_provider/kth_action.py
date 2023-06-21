@@ -7,6 +7,7 @@ import logging
 import random
 from typing import Iterable, List
 from dataclasses import dataclass
+import time
 
 logger = logging.getLogger(__name__)
 
@@ -90,9 +91,8 @@ class DataProcess:
         self.image_width = input_param['image_width']
 
         # Hard coded training and test persons (prevent same person occurring in train - test set)
-        self.train_person = ['01', '02', '03', '04', '05', '06', '07', '08',
-                             '09', '10', '11', '12', '13', '14', '15', '16']
-        self.test_person = ['17', '18', '19', '20', '21', '22', '23', '24', '25']
+        self.train_person = ['01']
+        self.test_person = ['01']
 
         self.input_param = input_param
         self.seq_len = input_param['seq_length']
@@ -170,8 +170,9 @@ class DataProcess:
 
             # input type must be float32 for default interpolation method cv2.INTER_AREA
             frame_np = np.array(frame_im, dtype=np.float32)  # (1000, 1000) numpy array
-            data[i,:,:,0] = (cv2.resize(
-                frame_np, (self.image_width,self.image_width))/255).astype(np.int8)
+            img = (cv2.resize(frame_np, (self.image_width,self.image_width))/255).astype(np.int8)
+  
+            data[i,:,:,0] = img          
 
             frames_file_name.append(frame.file_name)
             frames_person_mark.append(frame.person_mark)
@@ -204,6 +205,8 @@ class DataProcess:
 
         print("there are " + str(data.shape[0]) + " pictures")
         print("there are " + str(len(indices)) + " sequences")
+
+        print(indices)
         return data, indices
 
     def get_train_input_handle(self):
