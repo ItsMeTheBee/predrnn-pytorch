@@ -6,23 +6,29 @@ from skimage.measure import compare_ssim
 from core.utils import preprocess, metrics
 import lpips
 import torch
+from PIL import Image
+import time
+
 
 loss_fn_alex = lpips.LPIPS(net='alex')
 
 
-def train(model, ims, real_input_flag, configs, itr):
+def train(model, ims, real_input_flag, configs, itr, writer):
     cost = model.train(ims, real_input_flag)
+    writer.add_scalar("Loss/train", cost, itr)
+
     if configs.reverse_input:
         ims_rev = np.flip(ims, axis=1).copy()
         cost += model.train(ims_rev, real_input_flag)
         cost = cost / 2
+        writer.add_scalar("RevLoss/train", cost, itr)
 
     if itr % configs.display_interval == 0:
         print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'itr: ' + str(itr))
         print('training loss: ' + str(cost))
 
 
-def test(model, test_input_handle, configs, itr):
+def test(model, test_input_handle, configs, itr, writer):
     print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'test...')
     test_input_handle.begin(do_shuffle=False)
     res_path = os.path.join(configs.gen_frm_dir, str(itr))
@@ -64,6 +70,10 @@ def test(model, test_input_handle, configs, itr):
         img_gen = preprocess.reshape_patch_back(img_gen, configs.patch_size)
         output_length = configs.total_length - configs.input_length 
         img_out = img_gen[:, -output_length:]
+
+        #img = Image.fromarray(img_out.astype(np.uint8), 'L')
+        #img.show(title="trainer test loop out")
+        #time.sleep(10)
 
         # MSE per frame
         for i in range(output_length):
@@ -144,3 +154,8 @@ def test(model, test_input_handle, configs, itr):
     print('lpips per frame: ' + str(np.mean(lp)))
     for i in range(configs.total_length - configs.input_length):
         print(lp[i])
+
+    writer.add_scalar("Test/avg_mse", avg_mse, itr)
+    writer.add_scalar("Test/ssmin_mean", np.mean(ssim), itr)
+    writer.add_scalar("Test/psnr_mean", np.mean(psnr), itr)
+    writer.add_scalar("Test/lp_mean", np.mean(lp), itr)

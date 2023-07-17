@@ -10,6 +10,11 @@ from core.models.model_factory import Model
 from core.utils import preprocess
 import core.trainer as trainer
 
+
+from torch.utils.tensorboard import SummaryWriter
+import time
+import json
+
 # -----------------------------------------------------------------------------
 parser = argparse.ArgumentParser(description='PyTorch video prediction model - PredRNN')
 
@@ -23,6 +28,9 @@ parser.add_argument('--train_data_paths', type=str, default='data/moving-mnist-e
 parser.add_argument('--valid_data_paths', type=str, default='data/moving-mnist-example/moving-mnist-valid.npz')
 parser.add_argument('--save_dir', type=str, default='checkpoints/mnist_predrnn')
 parser.add_argument('--gen_frm_dir', type=str, default='results/mnist_predrnn')
+parser.add_argument('--log_dir', type=str, default='log')
+parser.add_argument('--time_as_folderpath', type=bool, default=False)
+parser.add_argument('--folder_name', type=str, default='test')
 parser.add_argument('--input_length', type=int, default=10)
 parser.add_argument('--total_length', type=int, default=20)
 parser.add_argument('--img_width', type=int, default=64)
@@ -169,15 +177,25 @@ def schedule_sampling(eta, itr):
 
 
 def train_wrapper(model):
+
+    with open(os.path.join(args.log_dir,'commandline_args.txt'), 'w') as f:
+        print("writing args to ", args.log_dir)
+        json.dump(args.__dict__, f, indent=2)
+
     if args.pretrained_model:
         model.load(args.pretrained_model)
     # load data
+    print("loading data")
     train_input_handle, test_input_handle = datasets_factory.data_provider(
         args.dataset_name, args.train_data_paths, args.valid_data_paths, args.batch_size, args.img_width, args.img_height,
         seq_length=args.total_length, injection_action=args.injection_action, is_training=True)
 
     eta = args.sampling_start_value
 
+    writer = SummaryWriter(args.log_dir)
+    print("Logging to ", args.log_dir)
+
+    print("begin training")
     for itr in range(1, args.max_iterations + 1):
         if train_input_handle.no_batch_left():
             train_input_handle.begin(do_shuffle=True)
@@ -189,24 +207,36 @@ def train_wrapper(model):
         else:
             eta, real_input_flag = schedule_sampling(eta, itr)
 
-        print("begin training")
-        trainer.train(model, ims, real_input_flag, args, itr)
+        #print("begin training")
+        trainer.train(model, ims, real_input_flag, args, itr, writer)
 
         if itr % args.snapshot_interval == 0:
             model.save(itr)
 
         if itr % args.test_interval == 0:
-            trainer.test(model, test_input_handle, args, itr)
+            trainer.test(model, test_input_handle, args, itr, writer)
 
         train_input_handle.next()
 
+    print("training done!")
+
 
 def test_wrapper(model):
+
     model.load(args.pretrained_model)
     test_input_handle = datasets_factory.data_provider(
         args.dataset_name, args.train_data_paths, args.valid_data_paths, args.batch_size, args.img_width,
         seq_length=args.total_length, injection_action=args.injection_action, is_training=False)
     trainer.test(model, test_input_handle, args, 'test_result')
+
+
+
+if args.time_as_folderpath:
+    args.save_dir = os.path.join(args.save_dir, args.folder_name, time.strftime("%Y-%m-%d_%H-%M"), "checkpoints")
+    args.gen_frm_dir = os.path.join(args.gen_frm_dir, args.folder_name, time.strftime("%Y-%m-%d_%H-%M"), "results")
+    args.log_dir = os.path.join(args.log_dir, args.folder_name, time.strftime("%Y-%m-%d_%H-%M"), "logs")
+
+print("\n SAVING TO ", args.save_dir, " \n")
 
 
 if os.path.exists(args.save_dir):
@@ -216,6 +246,10 @@ os.makedirs(args.save_dir)
 if os.path.exists(args.gen_frm_dir):
     shutil.rmtree(args.gen_frm_dir)
 os.makedirs(args.gen_frm_dir)
+
+if os.path.exists(args.log_dir):
+    shutil.rmtree(args.log_dir)
+os.makedirs(args.log_dir)
 
 print('Initializing models')
 

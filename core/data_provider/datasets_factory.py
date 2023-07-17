@@ -54,23 +54,32 @@ def data_provider(dataset_name, train_data_paths, valid_data_paths, batch_size,
             return test_input_handle
 
     if dataset_name == 'aramis':
-        input_param = {'paths': valid_data_list,
+        test_input_param = {'valid_data_paths': valid_data_list,
+                        'train_data_paths': train_data_list,
                        'image_width': img_width,
                        'image_height': img_height,
                        'minibatch_size': batch_size,
                        'seq_length': seq_length,
                        'input_data_type': 'float32',
                        'name': dataset_name + ' iterator'}
-        input_handle = datasets_map[dataset_name].DataProcess(input_param)
+
+        input_handle_test = datasets_map[dataset_name].DataProcess(test_input_param)
+        test_input_handle = input_handle_test.get_test_input_handle()
+        test_input_handle.begin(do_shuffle=False)
         if is_training:
-            train_input_handle = input_handle.get_train_input_handle()
+            train_input_param = {'valid_data_paths': valid_data_list,
+                                'train_data_paths': train_data_list,
+                                'image_width': img_width,
+                                'image_height': img_height,
+                                'minibatch_size': batch_size,
+                                'seq_length': seq_length,
+                                'input_data_type': 'float32',
+                                'name': dataset_name + ' iterator'}
+            input_handle_train = datasets_map[dataset_name].DataProcess(train_input_param)
+            train_input_handle = input_handle_train.get_train_input_handle()
             train_input_handle.begin(do_shuffle=True)
-            test_input_handle = input_handle.get_test_input_handle()
-            test_input_handle.begin(do_shuffle=False)
             return train_input_handle, test_input_handle
         else:
-            test_input_handle = input_handle.get_test_input_handle()
-            test_input_handle.begin(do_shuffle=False)
             return test_input_handle
 
     if dataset_name == 'bair':
