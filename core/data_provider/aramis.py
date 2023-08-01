@@ -13,6 +13,8 @@ from tqdm import tqdm
 from threading import Thread
 from typing import Union, List
 import time
+from . import augment
+from skimage.transform import resize
 
 
 logger = logging.getLogger(__name__)
@@ -108,6 +110,22 @@ class DataProcess:
         self.input_param = input_param
         self.seq_len = input_param['seq_length']
 
+    def crop_image(self, im):
+
+        cropx_t = 1000
+        cropy_t = 0000
+        cropx_b = 3000
+        cropy_b = 1000
+    
+        img = im[cropy_t:cropy_b,cropx_t:cropx_b]
+
+        img = augment.pad_to_size(img, 2000, 2000)
+        img = augment.resize(img, 400)
+
+        img = np.array(img)
+
+        return img.astype(np.uint8)
+
 
     def load_data(self, paths, mode='train'):
         '''
@@ -169,15 +187,16 @@ class DataProcess:
             indices.append(separator)
             X = np.load(file, allow_pickle=True)["arr_0"]
             for i in range(len(X)):
-                
+
                 X1, X2 = np.split(X[i], 2, axis=0)
-                """print(X1.shape)
-                print("Showing stored image")
-                pil_image = Image.fromarray(np.reshape(X1, (400,400)))
-                pil_image.show()
-                time.sleep(10)"""
-                #print(data_filler)
-                data[data_filler,:,:,0] = X1
+                X1 = X1.reshape(X1.shape[1], X1.shape[2])
+
+                X1 = resize(X1, (1000, 4096), preserve_range=True)
+                X1 = self.crop_image(X1)
+
+                img = X1.astype(np.uint8)
+
+                data[data_filler,:,:,0] = img
                 data_filler += 1
                 separator +=1
             #indices.append(separator)

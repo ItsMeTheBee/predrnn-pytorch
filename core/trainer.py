@@ -132,7 +132,14 @@ def test(model, test_input_handle, configs, itr, writer):
                 img_pd = np.maximum(img_pd, 0)
                 img_pd = np.minimum(img_pd, 1)
                 img_pd = np.uint8(img_pd * 255)
-                cv2.imwrite(file_name, img_pd)
+
+                img = np.reshape(img_pd, (400,400))
+                img = Image.fromarray(img.astype(np.uint8), 'L')
+                #img.show(title="output")
+                #time.sleep(10)
+                img.save(os.path.join(path, name))
+
+                #cv2.imwrite(file_name, img_pd)
         test_input_handle.next()
 
     avg_mse = avg_mse / (batch_id * configs.batch_size)
